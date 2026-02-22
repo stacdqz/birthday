@@ -36,58 +36,26 @@
 <body>
     <div class="loader"></div>
     <p>正在为您打开生日惊喜，请稍候...</p>
+<script>
+    const targetUrl = "https://3bbj.cn/46277";
 
-    <script>
-                // --- 2. 配置你的 Supabase 凭证 ---
-        // --- 2. 配置你的 Supabase 凭证 ---
-        const SUPABASE_URL = 'https://qxgwhtxwogstsjnuoacq.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_VZixI6Z49NvH3O-zU-zcOw_LVgWhQgA';
+    async function recordAndRedirect() {
+        // 设置 1.5 秒后强制跳转，不让用户久等
+        const forceJump = setTimeout(() => { window.location.href = targetUrl; }, 1500);
 
-// 跳转的目标地址
-        const targetUrl = "https://3bbj.cn/46277";
-
-        async function recordAndRedirect() {
-    // 强制保险：不管记录成不成功，1.5秒后必须跳走
-
-            const forceJump = setTimeout(() => {
-                window.location.href = targetUrl;
-    }, 1500);
-
-    try {
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // 使用国内访问较快的 IP 接口 (搜狐)
-        // 这个接口返回一段 JS 变量，我们直接抓取它
-        const ipScript = document.createElement('script');
-        ipScript.src = 'https://pv.sohu.com/cityjson?ie=utf-8';
-        document.head.appendChild(ipScript);
-
-        // 等待 IP 脚本加载（给 0.8 秒时间）
-        await new Promise((resolve) => setTimeout(resolve, 800));
-
-        let userIp = "Unknown";
-        if (typeof returnCitySN !== 'undefined') {
-            userIp = returnCitySN["cip"]; // 获取搜狐接口返回的 IP
+        try {
+            // 请求你自己的 Vercel 后端接口
+            // 访问 /api/log 就像访问你域名下的普通页面一样，不需要 VPN
+            await fetch('/api/log'); 
+        } catch (err) {
+            console.log("Log failed");
+        } finally {
+            window.location.href = targetUrl;
         }
-
-        // 写入数据库
-        await _supabase.from('view_logs').insert([
-            { 
-                ip_address: userIp, 
-                user_agent: navigator.userAgent 
-            }
-        ]);
-
-    } catch (err) {
-        console.log("网络环境受限，记录跳过");
-    } finally {
-        clearTimeout(forceJump);
-        window.location.href = targetUrl;
     }
-}
 
-window.onload = recordAndRedirect;
+    window.onload = recordAndRedirect;
+</script>
 
-    </script>
 </body>
 </html>
