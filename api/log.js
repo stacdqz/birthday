@@ -1,14 +1,17 @@
 export default async function handler(req, res) {
-    // 你的凭证
     const SUPABASE_URL = 'https://qxgwhtxwogstsjnuoacq.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_VZixI6Z49NvH3O-zU-zcOw_LVgWhQgA';
 
-    // 获取访问者的 IP 和 浏览器信息
+    // 1. 获取基础信息
     const ip = req.headers['x-forwarded-for'] || 'Unknown';
     const ua = req.headers['user-agent'] || 'Unknown';
 
+    // 2. 获取地理位置 (这是 Vercel 自动注入的 Header)
+    const city = req.headers['x-vercel-ip-city'] || 'Unknown';
+    const region = req.headers['x-vercel-ip-country-region'] || 'Unknown';
+    const country = req.headers['x-vercel-ip-country'] || 'Unknown';
+
     try {
-        // 使用标准的 fetch 发送到 Supabase
         await fetch(`${SUPABASE_URL}/rest/v1/view_logs`, {
             method: 'POST',
             headers: {
@@ -18,15 +21,17 @@ export default async function handler(req, res) {
                 'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
-                ip_address: ip.split(',')[0], // 只要第一个真实IP
-                user_agent: ua
+                ip_address: ip.split(',')[0],
+                user_agent: ua,
+                city: decodeURIComponent(city),    // 城市名（如 Shanghai）
+                region: region,                    // 省份代码（如 SH）
+                country: country                   // 国家（如 CN）
             })
         });
 
-        // 成功返回
         res.status(200).json({ status: 'ok' });
     } catch (error) {
-        // 即使报错也返回 200，保证前端能跳转
         res.status(200).json({ status: 'error' });
     }
 }
+
