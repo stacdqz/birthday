@@ -39,48 +39,54 @@
 
     <script>
                 // --- 2. 配置你的 Supabase 凭证 ---
+        // --- 2. 配置你的 Supabase 凭证 ---
         const SUPABASE_URL = 'https://qxgwhtxwogstsjnuoacq.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_VZixI6Z49NvH3O-zU-zcOw_LVgWhQgA';
-        
-        // 注意这里：我们将实例重命名为 _supabase
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 跳转的目标地址
+// 跳转的目标地址
         const targetUrl = "https://3bbj.cn/46277";
 
         async function recordAndRedirect() {
-            try {
-                // 第一步：尝试获取 IP
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
+    // 强制保险：不管记录成不成功，1.5秒后必须跳走
 
-                const ipResponse = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                const ipData = await ipResponse.json();
-                const userIp = ipData.ip;
-                clearTimeout(timeoutId);
-
-                // 第二步：将信息写入 Supabase (这里也要用 _supabase)
-                await _supabase.from('view_logs').insert([
-                    { 
-                        ip_address: userIp, 
-                        user_agent: navigator.userAgent 
-                    }
-                ]);
-                console.log("记录成功");
-
-            } catch (err) {
-                console.error("记录失败，但将继续跳转:", err);
-            } finally {
-                // 第三步：跳转
+            const forceJump = setTimeout(() => {
                 window.location.href = targetUrl;
-            }
+    }, 1500);
+
+    try {
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 使用国内访问较快的 IP 接口 (搜狐)
+        // 这个接口返回一段 JS 变量，我们直接抓取它
+        const ipScript = document.createElement('script');
+        ipScript.src = 'https://pv.sohu.com/cityjson?ie=utf-8';
+        document.head.appendChild(ipScript);
+
+        // 等待 IP 脚本加载（给 0.8 秒时间）
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        let userIp = "Unknown";
+        if (typeof returnCitySN !== 'undefined') {
+            userIp = returnCitySN["cip"]; // 获取搜狐接口返回的 IP
         }
 
-        window.onload = recordAndRedirect;
+        // 写入数据库
+        await _supabase.from('view_logs').insert([
+            { 
+                ip_address: userIp, 
+                user_agent: navigator.userAgent 
+            }
+        ]);
 
-        setTimeout(() => {
-            window.location.href = targetUrl;
-        }, 5000);
+    } catch (err) {
+        console.log("网络环境受限，记录跳过");
+    } finally {
+        clearTimeout(forceJump);
+        window.location.href = targetUrl;
+    }
+}
+
+window.onload = recordAndRedirect;
 
     </script>
 </body>
