@@ -2,22 +2,86 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=https://3bbj.cn/46277">
+    <title>正在为您准备惊喜...</title>
     
-    <title>正在跳转...</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         body {
             background-color: #000;
             color: #fff;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: sans-serif;
+            margin: 0;
+        }
+        .loader {
+            border: 3px solid #333;
+            border-top: 3px solid #ff00de;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
+    <div class="loader"></div>
     <p>正在为您打开生日惊喜，请稍候...</p>
+
+    <script>
+        // --- 2. 配置你的 Supabase 凭证 (请替换成你自己的) ---
+        const SUPABASE_URL = '你的SUPABASE_URL';
+        const SUPABASE_KEY = '你的SUPABASE_ANON_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 跳转的目标地址
+        const targetUrl = "https://3bbj.cn/46277";
+
+        async function recordAndRedirect() {
+            try {
+                // 第一步：尝试获取 IP (请求 ipify 接口)
+                // 设置了 2 秒超时，防止因为获取 IP 慢导致页面卡死
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+                const ipResponse = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+                const ipData = await ipResponse.json();
+                const userIp = ipData.ip;
+                clearTimeout(timeoutId);
+
+                // 第二步：将信息写入 Supabase
+                await supabase.from('view_logs').insert([
+                    { 
+                        ip_address: userIp, 
+                        user_agent: navigator.userAgent 
+                    }
+                ]);
+
+            } catch (err) {
+                // 如果报错（比如获取IP失败或数据库连不上），我们在后台记录，不影响跳转
+                console.error("记录失败，但将继续跳转:", err);
+            } finally {
+                // 第三步：无论记录成功还是失败，最终都执行跳转
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 页面加载完成后立即开始执行记录程序
+        window.onload = recordAndRedirect;
+
+        // 兜底方案：如果因为意外原因 JS 没执行，5秒后强制跳转
+        setTimeout(() => {
+            window.location.href = targetUrl;
+        }, 5000);
+    </script>
 </body>
 </html>
